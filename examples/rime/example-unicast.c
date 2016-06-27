@@ -39,7 +39,48 @@
 
 #include "contiki.h"
 #include "net/rime/rime.h"
-#include <stdio.h>
+#include "random.h"
+#include "dev/button-sensor.h"
+#include "dev/leds.h"
+#include "cc2420.h"
+#include "sys/node-id.h"
+
+
+#include <stdio.h> /* For printf() */
+
+#if WITH_TINYOS_AUTO_IDS
+uint16_t TOS_NODE_ID = 0x1234; /* non-zero */
+uint16_t TOS_LOCAL_ADDRESS = 0x1234; /* non-zero */
+#endif /* WITH_TINYOS_AUTO_IDS */
+/*---------------------------------------------------------------------------*/
+unsigned long
+strtolong(const char *str, const char **retstr)
+{
+  int i;
+  unsigned long num = 0;
+  const char *strptr = str;
+
+  if(str == NULL) {
+    return 0;
+  }
+  
+  while(*strptr == ' ') {
+    ++strptr;
+  }
+  
+  for(i = 0; i < 10 && isdigit(strptr[i]); ++i) {
+    num = num * 10 + strptr[i] - '0';
+  }
+  if(retstr != NULL) {
+    if(i == 0) {
+      *retstr = str;
+    } else {
+      *retstr = strptr + i;
+    }
+  }
+  
+  return num;
+}
 
 /*---------------------------------------------------------------------------*/
 PROCESS(example_unicast_process, "Example unicast");
@@ -48,8 +89,11 @@ AUTOSTART_PROCESSES(&example_unicast_process);
 static void
 recv_uc(struct unicast_conn *c, const linkaddr_t *from)
 {
-  printf("unicast message received from %d.%d\n",
-	 from->u8[0], from->u8[1]);
+  printf("\nReceived number %s\n",(char *)packetbuf_dataptr());
+  const char *numb = (char *)packetbuf_dataptr();
+  uint16_t txnum = strtolong(numb, &numb);
+  cc2420_set_txpower (txnum);
+  printf("Tx power read from register & is set to %u\n",cc2420_get_txpower());
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -59,8 +103,8 @@ sent_uc(struct unicast_conn *c, int status, int num_tx)
   if(linkaddr_cmp(dest, &linkaddr_null)) {
     return;
   }
-  printf("unicast message sent to %d.%d: status %d num_tx %d\n",
-    dest->u8[0], dest->u8[1], status, num_tx);
+  printf("unicast message sent to node(with id) %d\n",
+    dest->u8[0]);
 }
 /*---------------------------------------------------------------------------*/
 static const struct unicast_callbacks unicast_callbacks = {recv_uc, sent_uc};
@@ -82,7 +126,7 @@ PROCESS_THREAD(example_unicast_process, ev, data)
     
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
 
-    packetbuf_copyfrom("Hello", 5);
+    packetbuf_copyfrom("11", 3);
     addr.u8[0] = 1;
     addr.u8[1] = 0;
     if(!linkaddr_cmp(&addr, &linkaddr_node_addr)) {
