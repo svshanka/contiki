@@ -131,6 +131,7 @@ PROCESS_THREAD(example_unicast_process, ev, data)
     addr.u8[1] = 0;
     if(!linkaddr_cmp(&addr, &linkaddr_node_addr)) {
       unicast_send(&uc, &addr);
+      printf("\n Sending transmission to be set to 11");
     }
 
   }
