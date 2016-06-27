@@ -89,7 +89,7 @@ AUTOSTART_PROCESSES(&example_unicast_process);
 static void
 recv_uc(struct unicast_conn *c, const linkaddr_t *from)
 {
-  printf("\nReceived number %s\n",(char *)packetbuf_dataptr());
+  printf("\nReceived power : %s\n",(char *)packetbuf_dataptr());
   const char *numb = (char *)packetbuf_dataptr();
   uint16_t txnum = strtolong(numb, &numb);
   cc2420_set_txpower (txnum);
