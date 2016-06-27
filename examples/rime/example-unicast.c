@@ -140,7 +140,7 @@ sent_uc(struct unicast_conn *c, int status, int num_tx)
     return;
   }
   printf("unicast message sent to node %d\n",
-    dest->u8[0], status, num_tx);
+    dest->u8[0]);
   printf("Node id is %u\n",node_id);
 }
 /*---------------------------------------------------------------------------*/
