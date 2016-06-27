@@ -40,21 +40,64 @@
 #include "contiki.h"
 #include "net/rime/rime.h"
 #include "random.h"
-
 #include "dev/button-sensor.h"
-
 #include "dev/leds.h"
+#include "cc2420.h"
+#include "sys/node-id.h"
 
-#include <stdio.h>
+
+#include <stdio.h> /* For printf() */
+
+#if WITH_TINYOS_AUTO_IDS
+uint16_t TOS_NODE_ID = 0x1234; /* non-zero */
+uint16_t TOS_LOCAL_ADDRESS = 0x1234; /* non-zero */
+#endif /* WITH_TINYOS_AUTO_IDS */
 /*---------------------------------------------------------------------------*/
-PROCESS(example_broadcast_process, "Broadcast example");
+unsigned long
+strtolong(const char *str, const char **retstr)
+{
+  int i;
+  unsigned long num = 0;
+  const char *strptr = str;
+
+  if(str == NULL) {
+    return 0;
+  }
+  
+  while(*strptr == ' ') {
+    ++strptr;
+  }
+  
+  for(i = 0; i < 10 && isdigit(strptr[i]); ++i) {
+    num = num * 10 + strptr[i] - '0';
+  }
+  if(retstr != NULL) {
+    if(i == 0) {
+      *retstr = str;
+    } else {
+      *retstr = strptr + i;
+    }
+  }
+  
+  return num;
+}
+/*---------------------------------------------------------------------------*/
+PROCESS(example_broadcast_process, "TXN-POWER-SET-GET");
 AUTOSTART_PROCESSES(&example_broadcast_process);
 /*---------------------------------------------------------------------------*/
 static void
 broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 {
-  printf("broadcast message received from %d.%d: '%s'\n",
-         from->u8[0], from->u8[1], (char *)packetbuf_dataptr());
+  //char *rcvdpower = ;
+  printf("\nReceived number %s\n",(char *)packetbuf_dataptr());
+  const char *numb = (char *)packetbuf_dataptr();
+  uint16_t txnum = strtolong(numb, &numb);
+  //uint8_t txnum  =(uint8_t *)packetbuf_dataptr();
+  cc2420_set_txpower (txnum);
+
+  //printf("broadcast message received from %d.%d: '%s'\n",
+   //      from->u8[0], from->u8[1], (char *)rcvdpower);
+  printf("Tx power read from register %u\n",cc2420_get_txpower());
 }
 static const struct broadcast_callbacks broadcast_call = {broadcast_recv};
 static struct broadcast_conn broadcast;
@@ -68,19 +111,20 @@ PROCESS_THREAD(example_broadcast_process, ev, data)
   PROCESS_BEGIN();
 
   broadcast_open(&broadcast, 129, &broadcast_call);
-
+  
   while(1) {
 
-    /* Delay 2-4 seconds */
+   
     etimer_set(&et, CLOCK_SECOND * 4 + random_rand() % (CLOCK_SECOND * 4));
 
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
 
-    packetbuf_copyfrom("Hello", 6);
+    packetbuf_copyfrom("11", 3);
     broadcast_send(&broadcast);
-    printf("broadcast message sent\n");
-  }
+    printf("broadcast message sent, 11\n");
 
+  }
+  
   PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/
